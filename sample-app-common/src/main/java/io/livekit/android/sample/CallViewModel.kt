@@ -67,6 +67,21 @@ class CallViewModel(
         return e2eeOptions
     }
 
+    private val roomAsTrackFactory = LiveKit.create(
+        appContext = application,
+        options = RoomOptions(adaptiveStream = true, dynacast = true),
+    )
+
+    private val audioTrack by lazy {
+        roomAsTrackFactory.localParticipant.createAudioTrack("local_audio_track")
+    }
+
+    private val videoTrack by lazy {
+        roomAsTrackFactory.localParticipant.createVideoTrack("local_video_track")
+    }
+
+
+
     val room = LiveKit.create(
         appContext = application,
         options = RoomOptions(adaptiveStream = true, dynacast = true),
@@ -188,9 +203,11 @@ class CallViewModel(
 
             // Create and publish audio/video tracks
             val localParticipant = room.localParticipant
+            localParticipant.publishAudioTrack(audioTrack)
             localParticipant.setMicrophoneEnabled(true)
             mutableMicEnabled.postValue(localParticipant.isMicrophoneEnabled())
 
+            localParticipant.publishVideoTrack(videoTrack)
             localParticipant.setCameraEnabled(true)
             mutableCameraEnabled.postValue(localParticipant.isCameraEnabled())
 
@@ -272,9 +289,20 @@ class CallViewModel(
     override fun onCleared() {
         super.onCleared()
 
+        room.localParticipant.let {
+            it.unpublishTrack(audioTrack, false)
+            it.unpublishTrack(videoTrack, false)
+        }
+
         // Make sure to release any resources associated with LiveKit
         room.disconnect()
         room.release()
+
+
+        audioTrack.dispose()
+        videoTrack.dispose()
+
+        roomAsTrackFactory.release()
 
         // Clean up foreground service
         val application = getApplication<Application>()
