@@ -24,6 +24,7 @@ import android.os.Build
 import androidx.annotation.Nullable
 import dagger.Module
 import dagger.Provides
+import io.livekit.android.EglBaseShared
 import io.livekit.android.LiveKit
 import io.livekit.android.memory.CloseableManager
 import io.livekit.android.util.LKLog
@@ -177,8 +178,10 @@ object RTCModule {
     fun eglBase(
         memoryManager: CloseableManager,
     ): EglBase {
-        val eglBase = EglBase.create()
-        memoryManager.registerResource(eglBase) { eglBase.release() }
+        val eglBase = EglBaseShared.create()
+        memoryManager.registerResource(EglBaseShared) {
+            EglBaseShared.release()
+        }
 
         return eglBase
     }
